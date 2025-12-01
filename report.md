@@ -1,5 +1,8 @@
 # 棋类对战平台设计与实现报告
 
+**演示视频**：[点击观看 (清华云盘)](https://cloud.tsinghua.edu.cn/f/6918544bd65347b594c1/)  
+**项目仓库**：[GitHub - LevenKoko/oo-board-battle-platform](https://github.com/LevenKoko/oo-board-battle-platform)
+
 <style>
 .report-container { font-family: 'Segoe UI', sans-serif; line-height: 1.6; color: #333; }
 .section-title { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-top: 30px; color: #2c3e50; }
