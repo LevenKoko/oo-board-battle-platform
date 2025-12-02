@@ -46,7 +46,7 @@ npm install
 npm run dev
 ```
 
-Open your browser and visit `http://localhost:5173` (or the port shown in your terminal).
+Open your browser and visit `http://localhost:3000` (or the port shown in your terminal).
 
 ## 🏗 Project Structure
 
