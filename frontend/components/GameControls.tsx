@@ -3,13 +3,14 @@ import { Undo, Flag, Download, Upload, RotateCcw, Play } from 'lucide-react';
 
 interface GameControlsProps {
   onUndo: () => void;
-  onPass?: () => void; // Only for Go
+  onPass?: () => void;
   onResign: () => void;
   onRestart: () => void;
   onSave: () => void;
   onLoad: (e: React.ChangeEvent<HTMLInputElement>) => void;
   canUndo: boolean;
   isGo: boolean;
+  isReversi: boolean; // New prop
   gameOver: boolean;
 }
 
@@ -22,6 +23,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   onLoad,
   canUndo,
   isGo,
+  isReversi, // Destructure new prop
   gameOver
 }) => {
   return (
@@ -36,13 +38,15 @@ export const GameControls: React.FC<GameControlsProps> = ({
           <Undo className="w-4 h-4" /> Undo
         </button>
 
-        <button
-          onClick={onPass}
-          disabled={gameOver}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-900/50 hover:bg-amber-800/50 text-amber-200 border border-amber-800/50 rounded-lg transition-colors"
-        >
-            Pass
-        </button>
+        {(isGo || isReversi) && onPass && ( // Conditionally render Pass button
+          <button
+            onClick={onPass}
+            disabled={gameOver}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-900/50 hover:bg-amber-800/50 text-amber-200 border border-amber-800/50 rounded-lg transition-colors"
+          >
+              Pass
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
