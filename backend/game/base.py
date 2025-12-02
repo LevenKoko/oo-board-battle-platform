@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Tuple # Added Tuple
 import uuid
 
 from board_battle_project.backend.models import Player, GameState, GameType, Move, BoardGrid
@@ -71,6 +71,13 @@ class AbstractGame(ABC):
         """Switch the current player."""
         self.current_player = Player.WHITE if self.current_player == Player.BLACK else Player.BLACK
 
+    def get_valid_moves_for_current_player(self) -> List[Tuple[int, int]]:
+        """
+        Returns a list of all valid (x, y) coordinates where the current player can make a move.
+        Default implementation returns an empty list, should be overridden by games that support it.
+        """
+        return []
+
     def get_state(self) -> GameState:
         """Return the current game state as a Pydantic model."""
         return GameState(
@@ -84,7 +91,8 @@ class AbstractGame(ABC):
             message=self.message,
             lastMove=self.last_move,
             gameType=self.game_type,
-            boardSize=self.board_size
+            boardSize=self.board_size,
+            validMoves=self.get_valid_moves_for_current_player() # Include valid moves
         )
 
     def undo_last_move(self) -> tuple[bool, str]:
