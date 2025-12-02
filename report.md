@@ -1,5 +1,6 @@
 # 棋类对战平台设计与实现报告
 
+**部署Demo**：[点击访问](https://go.leven.fun)  
 **演示视频**：[点击观看 (清华云盘)](https://cloud.tsinghua.edu.cn/f/6918544bd65347b594c1/)  
 **项目仓库**：[GitHub - LevenKoko/oo-board-battle-platform](https://github.com/LevenKoko/oo-board-battle-platform)
 

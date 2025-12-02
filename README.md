@@ -3,6 +3,7 @@
 A turn-based strategy game platform (Go & Gomoku) built with Python (FastAPI) and React. Designed with strict Object-Oriented Programming principles.
 
 **🔗 Resources:**
+- **Deployed Demo:** [Visit Live Demo](https://go.leven.fun)
 - **Demo Video:** [Watch on Tsinghua Cloud](https://cloud.tsinghua.edu.cn/f/6918544bd65347b594c1/)
 - **Repository:** [GitHub](https://github.com/LevenKoko/oo-board-battle-platform)
 
