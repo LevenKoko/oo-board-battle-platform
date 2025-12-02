@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple, Union, Any # Added Union, Any
 from pydantic import BaseModel, Field
 
 # --- Enums ---
@@ -11,6 +11,28 @@ class Player(str, Enum):
 class GameType(str, Enum):
     GOMOKU = "GOMOKU"
     GO = "GO"
+    REVERSI = "REVERSI"
+
+class AILevel(str, Enum):
+    HUMAN = "HUMAN" # Not an AI, but a placeholder for player type
+    GREEDY = "GREEDY"
+    MINIMAX = "MINIMAX"
+    MCTS = "MCTS"
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
 
 class GameStatus(str, Enum):
     ONGOING = "ongoing"
@@ -43,6 +65,7 @@ class GameState(BaseModel):
     last_move: Optional[Move] = Field(None, alias="lastMove")
     game_type: GameType = Field(..., alias="gameType")
     board_size: int = Field(..., alias="boardSize")
+    valid_moves: List[Tuple[int, int]] = Field([], alias="validMoves")
 
 
 # --- API Request/Response Models ---
@@ -50,6 +73,13 @@ class GameState(BaseModel):
 class GameConfig(BaseModel):
     board_size: int = Field(..., alias="boardSize")
     game_type: GameType = Field(..., alias="gameType")
+    
+    player_black_is_ai: bool = Field(False, alias="playerBlackIsAI")
+    player_white_is_ai: bool = Field(False, alias="playerWhiteIsAI")
+    # Separate AI levels
+    black_ai_level: Optional[AILevel] = Field(AILevel.GREEDY, alias="blackAILevel")
+    white_ai_level: Optional[AILevel] = Field(AILevel.GREEDY, alias="whiteAILevel")
+
 
 class StartGameResponse(BaseModel):
     game_id: str = Field(..., alias="gameId")
@@ -74,3 +104,16 @@ class LoadGameRequest(BaseModel):
 
 class PlayerRequest(BaseModel):
     player: Player
+
+class MatchInfo(BaseModel):
+    id: int
+    game_type: GameType = Field(..., alias="gameType")
+    player_black_name: str = Field("AI", alias="playerBlackName")
+    player_white_name: str = Field("AI", alias="playerWhiteName")
+    result: Optional[str] = None
+    start_time: str = Field(..., alias="startTime") # Use string for datetime
+    end_time: Optional[str] = Field(None, alias="endTime")
+    moves_json: Union[List[Dict], Dict[str, Any]] = Field(..., alias="movesJson") # Changed type
+
+class MatchListResponse(BaseModel):
+    matches: List[MatchInfo]
