@@ -7,18 +7,25 @@ interface BoardProps {
   lastMove: { x: number; y: number } | null;
   onCellClick: (x: number, y: number) => void;
   readOnly: boolean;
+  validMoves: [number, number][]; // Updated type
+  currentPlayer: Player; 
 }
 
-export const Board: React.FC<BoardProps> = ({ grid, lastMove, onCellClick, readOnly }) => {
+export const Board: React.FC<BoardProps> = ({ grid, lastMove, onCellClick, readOnly, validMoves, currentPlayer }) => {
   const size = grid.length;
   
   const starPoints = useMemo(() => getStarPoints(size), [size]);
 
+  // Helper to check if a cell is a valid move
+  const isValidMove = (x: number, y: number) => {
+    // If no valid moves are provided (e.g. Gomoku/Go), assume all empty cells are valid for interaction
+    // The backend will enforce rules anyway.
+    if (!validMoves || validMoves.length === 0) return true;
+    // Check if [x, y] exists in validMoves array
+    return validMoves.some(move => move[0] === x && move[1] === y);
+  };
+
   // Calculate dimensions for the grid lines to ensure they pass through cell centers
-  // Each cell is 1 unit wide. Center is at 0.5.
-  // Total width is `size` units.
-  // Start of line (center of first cell): 0.5 / size * 100%
-  // Length of line (center of first to center of last): (size - 1) / size * 100%
   const lineStart = (0.5 / size) * 100;
   const lineLength = ((size - 1) / size) * 100;
 
@@ -96,20 +103,33 @@ export const Board: React.FC<BoardProps> = ({ grid, lastMove, onCellClick, readO
         {grid.map((row, y) => (
           row.map((cell, x) => {
             const isLastMove = lastMove?.x === x && lastMove?.y === y;
+            const isCurrentValidMove = !readOnly && !cell && isValidMove(x, y);
             
             return (
               <div
                 key={`${x}-${y}`}
-                onClick={() => !readOnly && onCellClick(x, y)}
+                onClick={() => isCurrentValidMove && onCellClick(x, y)}
                 className={`
                   relative z-10 flex items-center justify-center
-                  ${!readOnly && !cell ? 'cursor-pointer group' : ''}
+                  ${isCurrentValidMove ? 'cursor-pointer group' : ''}
                 `}
               >
-                {/* Hover ghost stone (semi-transparent indicator) */}
-                {!cell && !readOnly && (
+                {/* Valid Move Hint */}
+                {isCurrentValidMove && (
+                   <div className={`
+                        w-[30%] h-[30%] rounded-full opacity-60 transition-all duration-200
+                        ${currentPlayer === Player.BLACK ? 'bg-black' : 'bg-white'}
+                        group-hover:scale-125
+                   `}></div>
+                )}
+
+                {/* Hover ghost stone (semi-transparent indicator) - now only for invalid empty cells*/}
+                {/* Replaced by Valid Move Hint */}
+                {/*
+                {!cell && !readOnly && !isCurrentValidMove && (
                    <div className="w-[40%] h-[40%] rounded-full bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-200 scale-75 group-hover:scale-100"></div>
                 )}
+                */}
 
                 {/* Actual Stone */}
                 {cell && (
