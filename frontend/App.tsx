@@ -19,7 +19,10 @@ const App: React.FC = () => {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route 
+          path="/login" 
+          element={AuthService.isAuthenticated() ? <Navigate to="/lobby" replace /> : <LoginPage />} 
+        />
         {/* Protected routes */}
         <Route path="/lobby" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
         <Route path="/game" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
