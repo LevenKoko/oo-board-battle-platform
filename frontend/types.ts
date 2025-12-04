@@ -68,3 +68,46 @@ export interface IGameService {
   loadGame(savedGame: SavedGame): Promise<GameState>;
   getGameState(): GameState;
 }
+
+export interface UserCreate {
+  id?: number; // Added ID
+  username: string;
+  password: string;
+  total_games?: number;
+  wins?: number;
+}
+
+export interface UserLogin {
+  username: string;
+  password: string;
+}
+
+export interface Token {
+  access_token: string;
+  token_type: string;
+}
+
+export interface MatchInfo {
+  id: number;
+  gameType: string;
+  playerBlackName: string;
+  playerWhiteName: string;
+  result: string | null;
+  startTime: string;
+  endTime: string | null;
+  movesJson: any;
+}
+
+export interface MatchListResponse {
+  matches: MatchInfo[];
+}
+
+export interface RoomSession {
+  match_id: string;
+  black_player_id: number | null;
+  white_player_id: number | null;
+  black_ready: boolean;
+  white_ready: boolean;
+  config: GameConfig;
+  swap_request_from?: number; // Added
+}

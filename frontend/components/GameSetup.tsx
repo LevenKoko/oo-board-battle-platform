@@ -9,7 +9,7 @@ interface GameSetupProps {
   onCancel: () => void;
 }
 
-export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame, isFirstLoad, onCancel }) => {
+export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame, isFirstLoad, onCancel, mode = 'practice' }) => {
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD_SIZE);
   const [gameType, setGameType] = useState<GameType>(GameType.GOMOKU);
   const [playerBlackIsAI, setPlayerBlackIsAI] = useState(false);
@@ -41,7 +41,7 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStartGame, isFirstLoad, 
     });
   };
 
-  const showAiOptions = gameType === GameType.GOMOKU || gameType === GameType.REVERSI;
+  const showAiOptions = mode === 'practice' && (gameType === GameType.GOMOKU || gameType === GameType.REVERSI);
 
   const AiLevelSelector = ({ label, value, onChange }: { label: string, value: AILevel, onChange: (l: AILevel) => void }) => (
       <div className="flex flex-col gap-2">
