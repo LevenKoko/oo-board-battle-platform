@@ -1,5 +1,6 @@
 from typing import Dict, Optional, Tuple
 from sqlalchemy.orm import Session
+from pydantic import BaseModel # Added BaseModel
 from board_battle_project.backend.game.base import AbstractGame
 from board_battle_project.backend.game.gomoku import GomokuGame
 from board_battle_project.backend.game.go import GoGame
@@ -7,21 +8,125 @@ from board_battle_project.backend.game.reversi import ReversiGame
 from board_battle_project.backend.models import GameType, Player, MoveResult, GameState, GameConfig, AILevel
 from board_battle_project.backend.ai.reversi_ai import GreedyReversiAI, MinimaxReversiAI, AIStrategy
 from board_battle_project.backend.ai.gomoku_ai import GreedyGomokuAI, MinimaxGomokuAI
-from board_battle_project.backend.db_models import Match, User # Import Match and User for saving game results
-import json # For serializing moves_json
+from board_battle_project.backend.db_models import Match, User 
+import json 
+
+class RoomSession(BaseModel):
+    match_id: str
+    black_player_id: Optional[int] = None
+    white_player_id: Optional[int] = None
+    black_ready: bool = False
+    white_ready: bool = False
+    config: Optional[GameConfig] = None
+    swap_request_from: Optional[int] = None # User ID who requested swap
+    last_action_was_undo: bool = False # Track consecutive undos
 
 class GameController:
     _instance: Optional['GameController'] = None
     _active_games: Dict[str, AbstractGame] = {}
-    _ai_configs: Dict[str, Dict[Player, AILevel]] = {} # game_id -> {Player.BLACK: AILevel, Player.WHITE: AILevel}
-    _game_player_map: Dict[str, Tuple[Optional[int], Optional[int]]] = {} # game_id -> (black_user_id, white_user_id)
+    _ai_configs: Dict[str, Dict[Player, AILevel]] = {} 
+    _game_player_map: Dict[str, Tuple[Optional[int], Optional[int]]] = {} 
+    _room_sessions: Dict[str, RoomSession] = {} # New: track room lobby state
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(GameController, cls).__new__(cls)
         return cls._instance
 
-    def create_game(self, config: GameConfig, black_user_id: Optional[int] = None, white_user_id: Optional[int] = None) -> AbstractGame:
+    def get_or_create_session(self, match_id: str, config: GameConfig = None, black_id: int = None, white_id: int = None) -> RoomSession:
+        if match_id not in self._room_sessions:
+            self._room_sessions[match_id] = RoomSession(
+                match_id=match_id,
+                config=config,
+                black_player_id=black_id,
+                white_player_id=white_id
+            )
+        return self._room_sessions[match_id]
+
+    def update_session_players(self, match_id: str, user_id: int):
+        session = self._room_sessions.get(match_id)
+        if not session: return
+        
+        # Assign user to a slot if not already assigned
+        if session.black_player_id == user_id or session.white_player_id == user_id:
+            return # Already in
+        
+        if session.black_player_id is None:
+            session.black_player_id = user_id
+        elif session.white_player_id is None:
+            session.white_player_id = user_id
+    
+    def request_switch_sides(self, match_id: str, user_id: int) -> RoomSession:
+        session = self._room_sessions.get(match_id)
+        if session:
+            session.swap_request_from = user_id
+        return session
+
+    def approve_switch_sides(self, match_id: str, user_id: int) -> RoomSession:
+        session = self._room_sessions.get(match_id)
+        if session and session.swap_request_from:
+            # Only allow if user is NOT the requester (basic check, can be stricter)
+            if session.swap_request_from != user_id:
+                # Perform swap
+                session.black_player_id, session.white_player_id = session.white_player_id, session.black_player_id
+                # Reset ready status
+                session.black_ready = False
+                session.white_ready = False
+            # Clear request
+            session.swap_request_from = None
+        return session
+
+    def reject_switch_sides(self, match_id: str, user_id: int) -> RoomSession:
+        session = self._room_sessions.get(match_id)
+        if session:
+            session.swap_request_from = None
+        return session
+
+    def handle_player_disconnect(self, match_id: str, user_id: int) -> Tuple[Optional[RoomSession], Optional[AbstractGame], bool]: # Added bool for cleanup status
+        session = self._room_sessions.get(match_id)
+        game = self.get_game(match_id)
+        
+        cleaned_up = False
+
+        if session:
+            # Clear slots
+            if session.black_player_id == user_id:
+                session.black_player_id = None
+                session.black_ready = False
+            if session.white_player_id == user_id:
+                session.white_player_id = None
+                session.white_ready = False
+            
+            # If game is active and user was a player, trigger resign
+            if game and not game.is_game_over:
+                player_color = None
+                if user_id == self._game_player_map.get(match_id, (None, None))[0]:
+                    player_color = Player.BLACK
+                elif user_id == self._game_player_map.get(match_id, (None, None))[1]:
+                    player_color = Player.WHITE
+                
+                if player_color:
+                    print(f"Player {user_id} disconnected during game. Triggering resign.")
+                    game.resign(player_color)
+            
+            # Check if room is empty
+            if session.black_player_id is None and session.white_player_id is None:
+                self.remove_game(match_id) # Remove active game instance
+                del self._room_sessions[match_id] # Remove room session
+                cleaned_up = True
+
+        return session, game, cleaned_up
+
+    def toggle_ready(self, match_id: str, user_id: int) -> RoomSession:
+        session = self._room_sessions.get(match_id)
+        if session:
+            if session.black_player_id == user_id:
+                session.black_ready = not session.black_ready
+            elif session.white_player_id == user_id:
+                session.white_ready = not session.white_ready
+        return session
+
+    def create_game(self, config: GameConfig, black_user_id: Optional[int] = None, white_user_id: Optional[int] = None, game_id_override: Optional[str] = None) -> AbstractGame:
         game: AbstractGame
         if config.game_type == GameType.GOMOKU:
             game = GomokuGame(config.board_size)
@@ -31,6 +136,9 @@ class GameController:
             game = ReversiGame(config.board_size)
         else:
             raise ValueError(f"Unknown game type: {config.game_type}")
+        
+        if game_id_override:
+            game.game_id = game_id_override
         
         self._active_games[game.game_id] = game
         self._game_player_map[game.game_id] = (black_user_id, white_user_id)
@@ -87,6 +195,11 @@ class GameController:
 
         success, message = game.make_move(x, y)
         if success:
+            # Reset undo flag
+            session = self._room_sessions.get(game_id)
+            if session:
+                session.last_action_was_undo = False
+
             # After human move, check for AI opponent
             if not game.is_game_over:
                 self._make_ai_move_if_possible(game_id)
@@ -94,27 +207,76 @@ class GameController:
         else:
             return MoveResult(success=False, error=message)
 
+    def request_undo(self, game_id: str, user_id: int) -> MoveResult:
+        game = self.get_game(game_id)
+        session = self._room_sessions.get(game_id)
+        if not game or not session:
+            return MoveResult(success=False, error="Game or session not found.")
+        
+        if session.last_action_was_undo:
+            return MoveResult(success=False, error="Cannot undo consecutively.")
+
+        # Determine steps to undo
+        steps_to_undo = 0
+        
+        # Identify player color
+        player_color = None
+        black_id, white_id = self._game_player_map.get(game_id, (None, None))
+        if user_id == black_id:
+            player_color = Player.BLACK
+        elif user_id == white_id:
+            player_color = Player.WHITE
+        
+        if not player_color:
+             return MoveResult(success=False, error="You are not a player.")
+
+        if game.current_player == player_color:
+            # It's my turn. Opponent just moved.
+            # Requirement: Cannot undo opponent's move. Cannot undo my previous move because opponent moved.
+            return MoveResult(success=False, error="Cannot undo after opponent has moved.")
+        else:
+            # It's opponent's turn. I just moved.
+            # Requirement: I can undo my move before opponent moves.
+            steps_to_undo = 1
+        
+        if len(game.history) <= steps_to_undo:
+             return MoveResult(success=False, error="Cannot undo: Start of game.")
+
+        # Execute Undo
+        for _ in range(steps_to_undo):
+            game.undo_last_move()
+        
+        session.last_action_was_undo = True
+        return MoveResult(success=True, state=game.get_state())
+
     def _make_ai_move_if_possible(self, game_id: str):
         game = self.get_game(game_id)
         if not game or game.is_game_over:
             return
 
         ai_level = self._ai_configs.get(game_id, {}).get(game.current_player)
+        print(f"DEBUG: _make_ai_move game={game_id} current={game.current_player} level={ai_level}") # DEBUG
+
         if ai_level and ai_level != AILevel.HUMAN:
             ai_strategy = self._get_ai_strategy(game.game_type, ai_level)
             if ai_strategy:
+                print(f"DEBUG: AI Strategy found for {game.game_type}") # DEBUG
                 if isinstance(game, ReversiGame):
                     ai_move_x, ai_move_y = ai_strategy.make_move(game, game.current_player)
-                    if (ai_move_x, ai_move_y) != (-1, -1): # -1,-1 means no valid move, i.e., pass
-                        game.make_move(ai_move_x, ai_move_y)
+                    print(f"DEBUG: AI calculated move ({ai_move_x}, {ai_move_y})") # DEBUG
+                    if (ai_move_x, ai_move_y) != (-1, -1): 
+                        success, msg = game.make_move(ai_move_x, ai_move_y)
+                        print(f"DEBUG: AI make_move result: {success}, {msg}") # DEBUG
                     else:
-                        game.pass_turn(game.current_player) # AI has to pass
+                        print("DEBUG: AI passing turn") # DEBUG
+                        game.pass_turn(game.current_player) 
                 elif isinstance(game, GomokuGame):
                     ai_move_x, ai_move_y = ai_strategy.make_move(game, game.current_player)
+                    print(f"DEBUG: AI calculated move ({ai_move_x}, {ai_move_y})") # DEBUG
                     if (ai_move_x, ai_move_y) != (-1, -1):
-                        game.make_move(ai_move_x, ai_move_y)
+                        success, msg = game.make_move(ai_move_x, ai_move_y)
+                        print(f"DEBUG: AI make_move result: {success}, {msg}") # DEBUG
                     else:
-                        # Should not happen in Gomoku unless board full (which is game over)
                         pass
                 
     def trigger_ai_move(self, game_id: str) -> MoveResult:
@@ -126,6 +288,8 @@ class GameController:
              return MoveResult(success=False, error="Game is over.")
 
         ai_level = self._ai_configs.get(game_id, {}).get(game.current_player)
+        print(f"DEBUG: trigger_ai_move game={game_id} player={game.current_player} level={ai_level}") # DEBUG
+
         if ai_level == AILevel.HUMAN:
              return MoveResult(success=False, error="It's not AI's turn.")
         
@@ -233,12 +397,15 @@ class GameController:
         elif game.winner is None and game.is_game_over:
             result_str = "DRAW" # Assuming draw if game over but no winner (e.g. board full)
 
+        from board_battle_project.backend.models import MatchStatus # Ensure MatchStatus is imported if not already available in scope (it is imported from models)
+
         new_match = Match(
             player_black_id=black_user_id,
             player_white_id=white_user_id,
             game_type=game.game_type.value, # Store enum value as string
             result=result_str,
-            moves_json=moves_data, # SQLAlchemy's JSON type handles list of dicts directly
+            status=MatchStatus.COMPLETED, # Fix: Archive should be COMPLETED
+            moves_json=moves_data, 
         )
         db.add(new_match)
         db.commit()

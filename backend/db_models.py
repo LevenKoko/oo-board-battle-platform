@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from board_battle_project.backend.database import Base
+from board_battle_project.backend.models import MatchStatus
 
 class User(Base):
     __tablename__ = "users"
@@ -20,13 +21,14 @@ class Match(Base):
     __tablename__ = "matches"
 
     id = Column(Integer, primary_key=True, index=True)
-    player_black_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Null if AI
-    player_white_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Null if AI
+    player_black_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Null if AI or waiting
+    player_white_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Null if AI or waiting
     game_type = Column(String(20), nullable=False) # Store enum name as string
+    status = Column(String(20), default=MatchStatus.WAITING, nullable=False) # Add status column
     start_time = Column(DateTime(timezone=True), server_default=func.now())
     end_time = Column(DateTime(timezone=True), nullable=True)
     result = Column(String(20), nullable=True) # e.g., "BLACK_WON", "DRAW", "WHITE_WON"
-    moves_json = Column(JSON, nullable=False) # Stores the list of moves as JSON
+    moves_json = Column(JSON, nullable=True) # Stores the list of moves as JSON. Nullable for waiting rooms.
 
     player_black = relationship("User", foreign_keys=[player_black_id], back_populates="matches_as_black")
     player_white = relationship("User", foreign_keys=[player_white_id], back_populates="matches_as_white")
