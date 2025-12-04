@@ -10,6 +10,7 @@ const API_BASE_URL = '/api';
 const GAME_API_URL = `${API_BASE_URL}/game`;
 const AUTH_API_URL = `${API_BASE_URL}/auth`;
 const REPLAY_API_URL = `${API_BASE_URL}/replays`;
+const ROOMS_API_URL = `${API_BASE_URL}/rooms`;
 
 let authToken: string | null = null; // Store token in memory
 
@@ -110,6 +111,38 @@ export class AuthService {
   }
 }
 
+export class RoomService {
+    static async fetchRooms(): Promise<MatchListResponse> {
+        return apiFetch<MatchListResponse>(`${ROOMS_API_URL}`, 'GET', null, true);
+    }
+
+    static async createRoom(config: GameConfig): Promise<MatchInfo> {
+        return apiFetch<MatchInfo>(`${ROOMS_API_URL}/create`, 'POST', config, true);
+    }
+
+    static async joinRoom(roomId: number): Promise<MatchInfo> {
+        return apiFetch<MatchInfo>(`${ROOMS_API_URL}/${roomId}/join`, 'POST', null, true);
+    }
+}
+
+export class ReplayService {
+    static async fetchMyReplays(): Promise<MatchListResponse> {
+        return apiFetch<MatchListResponse>(`${REPLAY_API_URL}/me`, 'GET', null, true);
+    }
+
+    static async fetchReplayById(matchId: number): Promise<MatchInfo> {
+        return apiFetch<MatchInfo>(`${REPLAY_API_URL}/${matchId}`, 'GET', null, true);
+    }
+
+    static async deleteReplay(matchId: number): Promise<void> {
+        return apiFetch<void>(`${REPLAY_API_URL}/${matchId}`, 'DELETE', null, true);
+    }
+
+    static async saveReplay(config: GameConfig, state: GameState, meta: any = {}): Promise<MatchInfo> {
+        return apiFetch<MatchInfo>(`${REPLAY_API_URL}/save`, 'POST', { config, state, meta }, true);
+    }
+}
+
 export class RemoteGameService implements IGameService {
   private gameId: string | null = null;
   private currentState: GameState | null = null;
@@ -186,16 +219,6 @@ export class RemoteGameService implements IGameService {
       if (!this.currentState) throw new Error("Game not initialized");
       return this.currentState;
   }
-}
-
-export class ReplayService {
-    static async fetchMyReplays(): Promise<MatchListResponse> {
-        return apiFetch<MatchListResponse>(`${REPLAY_API_URL}/me`, 'GET', null, true);
-    }
-
-    static async fetchReplayById(matchId: number): Promise<MatchInfo> {
-        return apiFetch<MatchInfo>(`${REPLAY_API_URL}/${matchId}`, 'GET', null, true);
-    }
 }
 
 // Factory to get the appropriate service

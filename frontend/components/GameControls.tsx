@@ -1,5 +1,5 @@
 import React from 'react';
-import { Undo, Flag, Download, Upload, RotateCcw, Play } from 'lucide-react';
+import { Undo, Flag, RotateCcw, Download, Upload, LogOut } from 'lucide-react'; // Added LogOut
 
 interface GameControlsProps {
   onUndo: () => void;
@@ -7,11 +7,13 @@ interface GameControlsProps {
   onResign: () => void;
   onRestart: () => void;
   onSave: () => void;
-  onLoad: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onLoad: () => void; // Changed type
+  onLeave?: () => void; 
   canUndo: boolean;
   isGo: boolean;
-  isReversi: boolean; // New prop
+  isReversi: boolean;
   gameOver: boolean;
+  isOnline: boolean; 
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
@@ -21,10 +23,12 @@ export const GameControls: React.FC<GameControlsProps> = ({
   onRestart,
   onSave,
   onLoad,
+  onLeave, 
   canUndo,
   isGo,
-  isReversi, // Destructure new prop
-  gameOver
+  isReversi,
+  gameOver,
+  isOnline 
 }) => {
   return (
     <div className="bg-slate-800 rounded-xl p-4 shadow-lg border border-slate-700 space-y-4">
@@ -38,7 +42,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
           <Undo className="w-4 h-4" /> Undo
         </button>
 
-        {(isGo || isReversi) && onPass && ( // Conditionally render Pass button
+        {(isGo || isReversi) && onPass && (
           <button
             onClick={onPass}
             disabled={gameOver}
@@ -50,35 +54,52 @@ export const GameControls: React.FC<GameControlsProps> = ({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <button
-            onClick={onResign}
-            disabled={gameOver}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-900/50 rounded-lg transition-colors"
+        {gameOver && onLeave ? (
+            <button
+                onClick={onLeave}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 rounded-lg transition-colors"
             >
-            <Flag className="w-4 h-4" /> Resign
-        </button>
+                <LogOut className="w-4 h-4" /> Leave
+            </button>
+        ) : (
+            <button
+                onClick={onResign}
+                disabled={gameOver}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-300 border border-red-900/50 rounded-lg transition-colors"
+            >
+                <Flag className="w-4 h-4" /> Resign
+            </button>
+        )}
 
-        <button
-          onClick={onRestart}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-teal-900/30 hover:bg-teal-900/50 text-teal-300 border border-teal-900/50 rounded-lg transition-colors"
-        >
-          <RotateCcw className="w-4 h-4" /> New
-        </button>
+        {(!isOnline || gameOver) && (
+            <button
+            onClick={onRestart}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-teal-900/30 hover:bg-teal-900/50 text-teal-300 border border-teal-900/50 rounded-lg transition-colors"
+            >
+            <RotateCcw className="w-4 h-4" /> {isOnline ? "Rematch" : "New"}
+            </button>
+        )}
       </div>
 
+      {/* Save/Load Section */}
       <div className="h-px bg-slate-700 my-2" />
 
       <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={onSave}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+        onClick={onSave}
+        className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
         >
-          <Download className="w-4 h-4" /> Save
+        <Download className="w-4 h-4" /> Save
         </button>
-        <label className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm cursor-pointer">
-          <Upload className="w-4 h-4" /> Load
-          <input type="file" accept=".json" onChange={onLoad} className="hidden" />
-        </label>
+        
+        {!isOnline && (
+            <button 
+            onClick={onLoad}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors text-sm"
+            >
+            <Upload className="w-4 h-4" /> Load
+            </button>
+        )}
       </div>
     </div>
   );
