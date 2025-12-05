@@ -96,7 +96,7 @@
 
 下图展示了系统内部各模块及其与外部世界的交互关系。前端通过 HTTP 与 WebSocket 双通道与后端通信，后端通过 GameController 协调 AI 和 数据库。
 
-![image-20251205163054667](C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163054667.png)
+![image-20251205163054667](C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\md_images\image-20251205163054667.png)
 
 ### 2.3 混合通信模型
 
@@ -162,7 +162,7 @@
 
 下图展示了系统核心类（游戏逻辑、AI、控制器）的继承与关联关系，突出了面向对象的设计。
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163130571.png" alt="image-20251205163130571" style="zoom:150%;" />
+<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\md_images\image-20251205163130571.png" alt="image-20251205163130571" style="zoom:150%;" />
 
 **图解说明**：
 *   `AbstractGame` 是所有游戏的基类，定义了通用接口。
@@ -182,7 +182,7 @@
 
 房间的状态流转不仅依赖于玩家的操作，还受到网络连接状态的影响。
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163153594.png" alt="image-20251205163153594" style="zoom:28%;" />
+<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\md_images\image-20251205163153594.png" alt="image-20251205163153594" style="zoom:28%;" />
 
 **状态详解**:
 *   **WAITING**: 房间已创建，等待对手加入，或者大厅内的准备阶段。此时房间在列表可见。
@@ -225,7 +225,7 @@
 
 下图展示了一场完整对局的交互流程：
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163228924.png" alt="image-20251205163228924" style="zoom:50%;" />
+<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\md_images\image-20251205163228924.png" alt="image-20251205163228924" style="zoom:50%;" />
 
 ### 4.3 游戏规则引擎 
 
@@ -292,7 +292,7 @@ for dx, dy in directions:
 
 ### 5.1 实体关系图
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163252654.png" alt="image-20251205163252654" style="zoom: 30%;" />
+<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\md_images\image-20251205163252654.png" alt="image-20251205163252654" style="zoom: 30%;" />
 
 ### 5.2 关键字段说明
 
