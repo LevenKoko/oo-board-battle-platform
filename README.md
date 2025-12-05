@@ -74,8 +74,23 @@
 *   Python 3.10+
 *   Node.js 16+
 *   MySQL Server
+*   (可选) Docker & Docker Compose
 
-### 1. 启动后端 (Backend)
+### 0. Docker 一键部署 (推荐)
+
+如果您安装了 Docker，这是最简单的启动方式。它会自动构建前端、后端并启动 MySQL 数据库。
+
+```bash
+# 进入项目根目录
+cd oo-board-battle-platform
+
+# 启动容器
+docker-compose up --build
+```
+
+启动完成后，访问 [http://localhost:8000](http://localhost:8000) 即可体验完整功能（前端已集成在后端服务中）。
+
+### 1. 手动启动后端 (Backend)
 
 ```bash
 # 进入项目根目录
