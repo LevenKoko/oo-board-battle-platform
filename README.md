@@ -2,7 +2,7 @@
 <div align="center">
 
 # ♟️ Zenith Board Battle Platform
-### 清华大学（深圳）研究生课程面向对象大作业 · 第二阶段 (Phase II)
+### 清华大学（深圳）研究生课程 - 面向对象大作业 · 第二阶段 (Phase II)
 
 [![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
