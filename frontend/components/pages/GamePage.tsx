@@ -91,8 +91,11 @@ const GamePage: React.FC = () => {
       setStatusMessage("Connecting to game room...");
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.hostname || 'localhost';
-      const wsUrl = `${protocol}//${host}:8000/ws/game/${routeGameId}?token=${token}`;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      const wsUrl = `${protocol}//${host}${port}/ws/game/${routeGameId}?token=${token}`;
       
+      console.log("[GamePage] Connecting WS:", wsUrl);
+
       const socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
