@@ -3,7 +3,8 @@ uvicorn[standard]==0.24.0.post1
 pydantic==2.5.2
 sqlalchemy
 pymysql
-passlib[bcrypt]
+passlib
+bcrypt==4.0.1
 python-jose
 cryptography
 python-multipart
