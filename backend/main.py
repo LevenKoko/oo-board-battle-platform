@@ -461,6 +461,10 @@ async def get_game_state(game_id: str):
         raise HTTPException(status_code=404, detail="Game not found.")
     return game.get_state()
 
+from fastapi.responses import FileResponse # Added import
+
+# ...
+
 @app.post("/api/game/load", response_model=StartGameResponse)
 async def load_game(request: LoadGameRequest):
     try:
@@ -472,8 +476,24 @@ async def load_game(request: LoadGameRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-if os.path.exists("frontend_dist"):
-    app.mount("/", StaticFiles(directory="frontend_dist", html=True), name="static")
+# SPA Serving Logic
+# 1. Mount assets directly
+if os.path.exists("frontend_dist/assets"):
+    app.mount("/assets", StaticFiles(directory="frontend_dist/assets"), name="assets")
+
+# 2. Catch-all route for React Router
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    # Allow API/WS to pass through (though FastAPI should match specific routes first, 
+    # this is a safety net if this catch-all is placed too early, but here it is at end)
+    if full_path.startswith("api") or full_path.startswith("ws"):
+        raise HTTPException(status_code=404, detail="Not Found")
+    
+    # Serve index.html for any other path (e.g. /login, /game/123)
+    index_file = "frontend_dist/index.html"
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"message": "Frontend not built or not found"}
 
 
 # --- Auth Routes ---

@@ -53,6 +53,72 @@
 
 下图展示了系统内部各模块及其与外部世界的交互关系：
 
+```plantuml
+@startuml
+!theme plain
+skinparam componentStyle uml2
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #2C3E50
+skinparam arrowColor #34495E
+skinparam packageBackgroundColor #F9F9F9
+
+package "Client Side (Browser)" {
+  component [React UI] as UI
+  component [State Manager] as FE_State
+  component [WebSocket Client] as WS_Client
+  
+  UI --> FE_State
+  FE_State --> WS_Client : Actions
+  WS_Client --> FE_State : Events
+}
+
+package "Server Side (Backend)" {
+  component [API Gateway (FastAPI)] as Gateway
+  component [Connection Manager] as ConnMgr
+  
+  package "Domain Core" {
+    component [GameController (Singleton)] as GC
+    component [RoomSession Manager] as RSM
+    component [Game Engine] as Engine
+    component [AI Engine] as AI
+  }
+  
+  component [ORM Mapper] as ORM
+}
+
+database "Persistence" {
+  component [MySQL Database] as DB
+}
+
+WS_Client <..> Gateway : WSS (Real-time)
+UI <..> Gateway : HTTPS (REST)
+
+Gateway --> GC : Delegate Logic
+Gateway --> ConnMgr : Broadcast Messages
+ConnMgr <..> WS_Client : Push Updates
+
+GC --> RSM : Manage Room State
+GC --> Engine : Execute Rules
+GC --> AI : Compute Moves
+GC --> ORM : Persist Data
+
+Engine -[hidden]-> AI
+ORM --> DB : SQL Queries
+
+note right of ConnMgr
+  Observer Pattern implementation
+  for broadcasting state changes
+  to all players in a room.
+end note
+
+note left of Engine
+  Template Method Pattern
+  defining game flow structure.
+end note
+
+@enduml
+```
+
 
 
 ![image-20251205163054667](C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163054667.png)
@@ -124,7 +190,118 @@
 
 下图展示了系统核心类（游戏逻辑、AI、控制器）的继承与关联关系，突出了面向对象的设计。
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163130571.png" alt="image-20251205163130571" style="zoom:150%;" />
+```plantuml
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+
+package "Game Core Domain" {
+
+  abstract class AbstractGame {
+    # game_id: str
+    # board: AbstractBoard
+    # current_player: Player
+    + history: List<BoardGrid>
+    + is_game_over: bool
+    + winner: Optional<Player>
+    --
+    + make_move(x: int, y: int): MoveResult
+    + undo_last_move(): bool
+    + pass_turn(player: Player): Tuple<bool, str>
+    + resign(player: Player)
+    {abstract} # _create_board(size: int): AbstractBoard
+    {abstract} # _is_valid_move(x: int, y: int): bool
+    {abstract} # check_game_over(): void
+  }
+
+  class ReversiGame {
+    - pass_count: int
+    + ReversiGame(board_size: int)
+    + check_game_over()
+    + pass_turn(player: Player): Tuple<bool, str>
+    - _determine_reversi_winner()
+    # _create_board(size: int): ReversiBoard
+    # _is_valid_move(x: int, y: int): bool
+  }
+
+  class GomokuGame {
+    + GomokuGame(board_size: int)
+    + check_game_over()
+    # _create_board(size: int): GomokuBoard
+    # _is_valid_move(x: int, y: int): bool
+  }
+
+  class GoGame {
+    + GoGame(board_size: int)
+    + check_game_over()
+    + pass_turn(player: Player): Tuple<bool, str>
+    - _check_liberties()
+    # _create_board(size: int): GoBoard
+    # _is_valid_move(x: int, y: int): bool
+  }
+
+  interface AIStrategy {
+    + make_move(game: AbstractGame, player: Player): Tuple<int, int>
+  }
+
+  class GreedyReversiAI implements AIStrategy {
+    + make_move(game: ReversiGame, player: Player): Tuple<int, int>
+  }
+
+  class MinimaxReversiAI implements AIStrategy {
+    - depth: int
+    + make_move(game: ReversiGame, player: Player): Tuple<int, int>
+  }
+
+  class GreedyGomokuAI implements AIStrategy {
+    + make_move(game: GomokuGame, player: Player): Tuple<int, int>
+  }
+
+  class GameController {
+    - _instance: GameController
+    - _active_games: Dict<str, AbstractGame>
+    - _ai_configs: Dict<str, Dict<Player, AILevel>>
+    - _room_sessions: Dict<str, RoomSession>
+    + get_instance(): GameController <<static>>
+    + create_game(config: GameConfig, ...): AbstractGame
+    + get_game(game_id: str): Optional<AbstractGame>
+    + make_move(game_id: str, x: int, y: int): MoveResult
+    + trigger_ai_move(game_id: str): MoveResult
+    + request_undo(game_id: str, user_id: int): MoveResult
+    + handle_player_disconnect(match_id: str, user_id: int): Tuple<Optional<RoomSession>, Optional<AbstractGame>, bool>
+  }
+
+  class RoomSession {
+    + match_id: str
+    + black_player_id: Optional<int>
+    + white_player_id: Optional<int>
+    + black_ready: bool
+    + white_ready: bool
+    + config: GameConfig
+    + swap_request_from: Optional<int>
+    + last_action_was_undo: bool
+  }
+
+}
+
+AbstractGame <|-- ReversiGame
+AbstractGame <|-- GomokuGame
+AbstractGame <|-- GoGame
+
+AIStrategy <|.. GreedyReversiAI
+AIStrategy <|.. MinimaxReversiAI
+AIStrategy <|.. GreedyGomokuAI
+
+GameController "1" *-- "0..n" AbstractGame : manages active games
+GameController "1" *-- "0..n" RoomSession : manages room states
+GameController "1" .> AIStrategy : uses strategy
+
+@enduml
+```
+
+![image-20251205163130571](C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163130571.png)
 
 ## 4. 关键模块详解 (Key Modules Implementation)
 
@@ -136,7 +313,35 @@
 
 房间的状态流转不仅依赖于玩家的操作，还受到网络连接状态的影响。
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163153594.png" alt="image-20251205163153594" style="zoom:28%;" />
+```plantuml
+@startuml
+!theme plain
+[*] --> WAITING : Create Room
+
+state WAITING {
+  [*] --> Lobby : Join Room
+  Lobby --> ReadyCheck : Both Present
+  ReadyCheck --> Lobby : Cancel Ready
+}
+
+WAITING --> PLAYING : Both Ready (Game Start)
+
+state PLAYING {
+  [*] --> InGame
+  InGame --> InGame : Move/Pass/Undo
+  InGame --> Finished : Win/Resign
+}
+
+PLAYING --> WAITING : Rematch
+PLAYING --> ABANDONED : Disconnect/Leave (Auto Resign)
+WAITING --> ABANDONED : All Players Left
+
+ABANDONED --> WAITING : Reconnect (Revive)
+ABANDONED --> [*] : Cleanup Timeout
+@enduml
+```
+
+<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163153594.png" alt="image-20251205163153594" style="zoom:33%;" />
 
 #### 4.1.2 断线重连与自动销毁 (Disconnection & Cleanup)
 
@@ -172,6 +377,61 @@
 #### 4.2.2 对战时序图 (Sequence Diagram)
 
 下图展示了一场完整对局的交互流程：
+
+```plantuml
+@startuml
+!theme plain
+actor "Host (User A)" as A
+actor "Guest (User B)" as B
+participant "Frontend" as UI
+participant "WebSocket API" as WS
+participant "GameController" as GC
+database "DB" as DB
+
+A -> UI: Create Room
+UI -> WS: POST /create
+WS -> DB: INSERT Match (WAITING)
+WS --> UI: Room ID 101
+
+A -> WS: Connect WS (Room 101)
+B -> WS: Connect WS (Room 101)
+WS -> GC: update_session_players()
+WS -> UI: BROADCAST ROOM_UPDATE (A & B in Lobby)
+
+== Preparation Phase ==
+A -> WS: Send {action: TOGGLE_READY}
+WS -> GC: toggle_ready(A)
+WS -> UI: BROADCAST ROOM_UPDATE (A Ready)
+B -> WS: Send {action: TOGGLE_READY}
+WS -> GC: toggle_ready(B)
+WS -> GC: check_all_ready() -> create_game()
+WS -> DB: UPDATE Match (PLAYING)
+WS -> UI: BROADCAST GAME_START
+
+== Gameplay Phase ==
+loop Game Loop
+  A -> WS: Send {action: MOVE, x, y}
+  WS -> GC: make_move()
+  GC -> GC: Validation & Update Board
+  WS -> UI: BROADCAST GAME_STATE (New Grid)
+  
+  B -> WS: Send {action: MOVE, x, y}
+  ...
+end
+
+== Termination Phase ==
+A -> WS: Send {action: RESIGN}
+WS -> GC: resign_game()
+WS -> DB: INSERT Match (COMPLETED) [Archive]
+WS -> UI: BROADCAST GAME_STATE (Winner: B)
+
+B -> WS: Send {action: LEAVE}
+WS -> GC: handle_player_disconnect(B)
+WS -> DB: UPDATE Match (ABANDONED)
+WS --> B: Close Connection
+
+@enduml
+```
 
 <img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163228924.png" alt="image-20251205163228924" style="zoom:50%;" />
 
@@ -240,7 +500,43 @@ for dx, dy in directions:
 
 ### 5.1 实体关系图 (ER Diagram)
 
-<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163252654.png" alt="image-20251205163252654" style="zoom: 30%;" />
+```plantuml
+@startuml
+!theme plain
+hide circle
+skinparam linetype ortho
+
+entity "User" as user {
+  *id : INT <<PK>>
+  --
+  username : VARCHAR
+  password : VARCHAR (Hashed)
+  total_games : INT
+  wins : INT
+  created_at : DATETIME
+}
+
+entity "Match" as match {
+  *id : INT <<PK>>
+  --
+  *game_type : ENUM ('GO', 'GOMOKU', 'REVERSI')
+  status : ENUM ('WAITING', 'PLAYING', 'COMPLETED', 'ABANDONED', 'SAVED')
+  result : VARCHAR
+  start_time : DATETIME
+  end_time : DATETIME
+  --
+  player_black_id : INT <<FK>>
+  player_white_id : INT <<FK>>
+  moves_json : JSON
+}
+
+user ||..o{ match : "plays as Black"
+user ||..o{ match : "plays as White"
+
+@enduml
+```
+
+<img src="C:\Users\LENOVO\SynologyDrive\Graduation\Course\Objective\FinalProject_Stage2\oo-board-battle-platform\report\image-20251205163252654.png" alt="image-20251205163252654" style="zoom: 50%;" />
 
 ### 5.2 关键字段说明
 
