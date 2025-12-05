@@ -27,7 +27,7 @@ WORKDIR /app
 COPY backend/requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 # Copy backend source code
 # We copy the whole project structure to keep imports working (e.g. board_battle_project.backend...)
