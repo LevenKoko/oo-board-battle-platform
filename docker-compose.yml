@@ -7,7 +7,7 @@ services:
       - "8000:8000"
     environment:
       # Use the service name 'db' as the host
-      - SQLALCHEMY_DATABASE_URL=mysql+pymysql://board_game:998244353@db/board_battle_db
+      - SQLALCHEMY_DATABASE_URL=mysql+pymysql://YOUR_USERNAME:YOUR_PASSWORD@db/board_battle_db
     depends_on:
       db:
         condition: service_healthy
@@ -19,9 +19,9 @@ services:
     restart: always
     environment:
       MYSQL_DATABASE: board_battle_db
-      MYSQL_USER: board_game
-      MYSQL_PASSWORD: "998244353"
-      MYSQL_ROOT_PASSWORD: "root_password"
+      MYSQL_USER: YOUR_USERNAME
+      MYSQL_PASSWORD: "YOUR_PASSWORD"
+      MYSQL_ROOT_PASSWORD: "ROOT_PASSWORD"
     ports:
       - "3306:3306"
     volumes:

@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 # 从环境变量获取数据库连接字符串，如果不存在则使用本地默认值 (Docker中会设置环境变量)
 # 在 Docker Compose 中，主机名将是 'db' 而不是 'localhost'
-DEFAULT_DB_URL = "mysql+pymysql://board_game:998244353@localhost/board_battle_db"
+DEFAULT_DB_URL = "mysql+pymysql://board_game:YOURPASSWORD@localhost/YOUEUSERNAME"
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
 
 # 创建 SQLAlchemy 引擎
